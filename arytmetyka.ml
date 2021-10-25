@@ -56,7 +56,7 @@ let dodatnie_zero (a:float) =
 let suma_zb (a:wartosc) (b:wartosc) = 
     if (fst a=neg_infinity && snd a=infinity) || (fst b=neg_infinity && snd b=infinity) then
         ((neg_infinity,infinity):wartosc)
-    else (**!!!!!!!!!!!! zrobić łączenia zbiorów *)
+    else (* !!!!!!!!!!!! zrobić łączenia zbiorów *)
         a
 ;;
 
@@ -167,8 +167,11 @@ let razy (a:wartosc) (b:wartosc) = (* mnożenie *)
 ;;
 
 let podzielic (a:wartosc) (b:wartosc) = (* dzielenie *)
-    if (fst a = 0.0 && snd a = 0.0) || (fst b = 0.0 && snd b = 0.0) then (* sprawdzenie, czy któryś ze zbiorów to zbiór (0.0,0.0) *)
-                ((nan,nan):wartosc)
+    if (fst b = 0.0 && snd b = 0.0) then (* sprawdzenie, czy dzielimy przez zero (0.0,0.0) *)
+        ((nan,nan):wartosc)
+    else
+    if (fst a = 0.0 && snd a = 0.0) then (* sprawdzenie, czy w liczebniku jest zero (0.0,0.0) *)
+        ((0.0,0.0):wartosc)
     else
     if fst b<0.0 && snd b>0.0 then (* 0 in [b1,b2] *)
         if fst (razy (neg_infinity, fst b) a)>fst (razy (snd b, infinity) a) then
