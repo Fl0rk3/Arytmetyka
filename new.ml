@@ -138,7 +138,7 @@ let plus (a:wartosc) (b:wartosc) =
         ((nan,nan):wartosc)
     else
     if fst a<=snd a &&  fst b<=snd b then (* zbiór zbieżny + zbiór zbieżny*)
-        (((fst a+.fstb),(snd a+.snd b)):wartosc)
+        (((fst a+.fst b),(snd a+.snd b)):wartosc)
     else if fst a>snd a &&  fst b>snd b then (* zbiór rozbieżny + zbiór rozbieżny*)
         ((neg_infinity,infinity):wartosc)
     else (* zbiór zbieżny + zbiór rozbieżny*)
@@ -163,22 +163,6 @@ let minus (a:wartosc) (b:wartosc) =
             (((fst a-.snd b),(snd a-.fst b)):wartosc)
 ;;
 
-(* funkcja do mnożenia z udziałem zbiorów rozbieżnych *)
-let razy_zb (a:wartosc) (b:wartosc) = 
-    if fst a>snd a && fst b>snd b then (* zbiór rozbieżny * zbiór rozbieżny *)
-        (* (neg_inf, snd a)u(fst a, inf) *)
-        (* (neg_inf, snd b)u(fst b, inf) *)
-        (* (neg_inf, snd a)*(neg_inf, snd b)u(neg_inf, snd a)*(fst b, inf) *)
-        (* (fst a, inf)*(neg_inf, snd b)u(fst a, inf)*(fst b, inf) *)
-        ((suma_zb (suma_zb (razy (neg_infinity,snd a) (neg_infinity,snd b) ) (razy (neg_infinity,snd a) (fst b, infinity) ) ) (suma_zb (razy (fst a,infinity) (neg_infinity,snd b) ) (razy (fst a, infinity) (fst b, infinity) ) ) ):wartosc)
-
-    else
-        (* (neg_inf, snd a)u(fst a, inf) *)
-        (* (fst b, snd b) *)
-        (* (neg_inf, snd a)*b u(fst a, inf)*b *)
-        ((suma_zb (razy (neg_infinity,snd a) b) (razy (fst a,infinity) b)):wartosc)
-;;
-
 let razy (a:wartosc) (b:wartosc) =
     if (is_nan (fst a) || is_nan (fst b)) then (* gdy któryś to nan *)
         ((nan,nan):wartosc)
@@ -189,12 +173,12 @@ let razy (a:wartosc) (b:wartosc) =
     if fst a<=snd a &&  fst b<=snd b then (* zbiór zbieżny * zbiór zbieżny*)
         (((dodatnie_zero (min_helper (fst a*.fst b) (fst a*.snd b) (snd a*.fst b) (snd a*.snd b))),(dodatnie_zero (max_helper (fst a*.fst b) (fst a*.snd b) (snd a*.fst b) (snd a*.snd b))):wartosc))
     else if fst a>snd a &&  fst b>snd b then (* zbiór rozbieżny * zbiór rozbieżny *)
-        ((razy_zb a b):wartosc)
+        ((suma_zb (suma_zb (razy (neg_infinity,snd a) (neg_infinity,snd b) ) (razy (neg_infinity,snd a) (fst b, infinity) ) ) (suma_zb (razy (fst a,infinity) (neg_infinity,snd b) ) (razy (fst a, infinity) (fst b, infinity) ) ) ):wartosc)
     else (* zbiór zbieżny * zbiór rozbieżny*)
         if(fst a>snd a) then (* a - rozbieżny *)
-            ((razy_zb a b):wartosc)
+            ((suma_zb (razy (neg_infinity,snd a) b) (razy (fst a,infinity) b)):wartosc)
         else (* b - rozbieżny *) 
-            ((razy_zb b a):wartosc)
+            ((suma_zb (razy (neg_infinity,snd b) a) (razy (fst b,infinity) a)):wartosc)
 ;;
 
 let podzielic (a:wartosc) (b:wartosc) =
@@ -209,54 +193,22 @@ let podzielic (a:wartosc) (b:wartosc) =
     else
     if (fst a=neg_infinity && snd a=infinity) || (fst b=neg_infinity && snd b=infinity) then (* licznik lub mianownik to (-inf,inf) *)
         ((neg_infinity,infinity):wartosc)
+    else
     if (fst a<=snd a &&  fst b<=snd b) || (fst a>snd a && fst b<=snd b) then (* zbiór zbieżny / zbiór zbieżny lub zbiór rozbieżny / zbiór zbieżny*)
         if fst b=0.0 then (* dzielenie przez (0,b)*)
             razy a ((1.0/.snd b),infinity)
         else 
-        if snd b=0.0 (* dzielenie przez (b,0) *)
+        if snd b=0.0 then (* dzielenie przez (b,0) *)
             razy a (neg_infinity,(1.0/.fst b))
         else 
-        if fst b<=0 && snd b>=0 then (* dzielenie przez 0\in(a,b) *)
+        if fst b<=0.0 && snd b>=0.0 then (* dzielenie przez 0\in(a,b) *)
             razy a ((1.0/.snd b),(1.0/.fst b))
         else (* dzielenie przez 0\notin(a,b) *)
             razy a ((1.0/.snd b),(1.0/.fst b)) 
     else (* zbiór rozbieżny / zbiór rozbieżny lub zbiór zbieżny / zbiór rozbieżny*)
-    if snd b=0.0 then (* sprwadzenie czy w podstawie mamy (-inf,0) *) then
+    if snd b=0.0 then (* sprwadzenie czy w podstawie mamy (-inf,0) *)
         razy a (neg_infinity,(1.0/.fst a))
     else
         razy a ((1.0/.snd b),(1.0/.fst a))
 ;;
-
-wartosc_dokladna 1.0;;
-
-wartosc_od_do 0.0 2.0;;
-
-wartosc_dokladnosc 5.0 50.0;;
-
-in_wartosc 0.0 0.0;;
-
-min_wartosc(wartosc_dokladnosc 5.0 50.0);;
-
-max_wartosc(wartosc_dokladnosc 5.0 50.0);;
-
-sr_wartosc(0.5, 3.65);;
-let zero = wartosc_dokladna 0.0;;
-let jeden = wartosc_dokladna 1.0;;
-let duzo = plus jeden (wartosc_od_do 0.0 1.0);;
-sr_wartosc duzo;;
-
-let a = wartosc_od_do (-1.) 1.
-let b = wartosc_dokladna (-1.) 
-let c = podzielic b a                      
-let e = wartosc_dokladna 0.                                       
-let h = wartosc_dokladnosc (-10.) 50.
-let l = plus a b;;
-let s = wartosc_dokladnosc (-0.0001) 100.;;
-let f = minus a a;;
-let j = wartosc_od_do (-6.) 5.;;
-let k = razy j j;;
-let l = razy zero j;;
-let (n:wartosc) = (0.0,infinity);;
-let (o:wartosc) = (neg_infinity,0.0);;
-let q = plus n o;;
 
