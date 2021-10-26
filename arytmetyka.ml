@@ -57,6 +57,9 @@ let suma_zb (a:wartosc) (b:wartosc) =
     if (fst a=neg_infinity && snd a=infinity) || (fst b=neg_infinity && snd b=infinity) then
         ((neg_infinity,infinity):wartosc)
     else
+    if (fst a>snd a) && (fst b>snd b) then (* dwa podzbiory *)
+        (((min (fst a) (fst b) ),(min (snd a) (snd b) )):wartosc)
+    else
     if (fst a=neg_infinity && fst b=neg_infinity) then (* oba zrbiory to (-inf,a) *)
         ((neg_infinity,(max (snd a) (snd b) )):wartosc)
     else 
@@ -86,8 +89,11 @@ let wartosc_dokladnosc (x:float) (p:float) = (((x-.(wartosc_bez x*.(p/.100.0))),
 
 (*---------- SELEKTORY ----------*)
 let in_wartosc (x:wartosc) (y:float) = 
+    if fst x=neg_infinity && snd x=infinity then
+        true
+    else
     if fst x<=snd x then (* zbiór zbieżny *)
-        if fst x>=y && snd x<=y then
+        if fst x<=y && snd x>=y then
             true
         else
             false
@@ -163,7 +169,7 @@ let minus (a:wartosc) (b:wartosc) =
             (((fst a-.snd b),(snd a-.fst b)):wartosc)
 ;;
 
-let razy (a:wartosc) (b:wartosc) =
+let rec razy (a:wartosc) (b:wartosc) =
     if (is_nan (fst a) || is_nan (fst b)) then (* gdy któryś to nan *)
         ((nan,nan):wartosc)
     else
@@ -173,7 +179,7 @@ let razy (a:wartosc) (b:wartosc) =
     if fst a<=snd a &&  fst b<=snd b then (* zbiór zbieżny * zbiór zbieżny*)
         (((dodatnie_zero (min_helper (fst a*.fst b) (fst a*.snd b) (snd a*.fst b) (snd a*.snd b))),(dodatnie_zero (max_helper (fst a*.fst b) (fst a*.snd b) (snd a*.fst b) (snd a*.snd b))):wartosc))
     else if fst a>snd a &&  fst b>snd b then (* zbiór rozbieżny * zbiór rozbieżny *)
-        ((suma_zb (suma_zb (razy (neg_infinity,snd a) (neg_infinity,snd b) ) (razy (neg_infinity,snd a) (fst b, infinity) ) ) (suma_zb (razy (fst a,infinity) (neg_infinity,snd b) ) (razy (fst a, infinity) (fst b, infinity) ) ) ):wartosc)
+        (((suma_zb (suma_zb (razy (neg_infinity,snd a) (neg_infinity,snd b) ) (razy (fst a, infinity) (neg_infinity,snd b) ) ) (suma_zb (razy (neg_infinity,snd a) (fst b, infinity) ) (razy (fst a, infinity) (fst b, infinity) ) ) ):wartosc))
     else (* zbiór zbieżny * zbiór rozbieżny*)
         if(fst a>snd a) then (* a - rozbieżny *)
             ((suma_zb (razy (neg_infinity,snd a) b) (razy (fst a,infinity) b)):wartosc)
@@ -185,11 +191,11 @@ let podzielic (a:wartosc) (b:wartosc) =
     if (is_nan (fst a) || is_nan (fst b)) then (* gdy któryś to nan *)
         ((nan,nan):wartosc)
     else
-    if fst a=0.0 && snd a=0.0 then (* dzielenie 0 przez dowolną wartość *)
-        ((0.0,0.0):wartosc)
-    else
     if fst b=0.0 && snd b=0.0 then (* dzielenie przez 0 *)
         ((nan,nan):wartosc)
+    else
+    if fst a=0.0 && snd a=0.0 then (* dzielenie 0 przez dowolną wartość *)
+        ((0.0,0.0):wartosc)
     else
     if (fst a=neg_infinity && snd a=infinity) || (fst b=neg_infinity && snd b=infinity) then (* licznik lub mianownik to (-inf,inf) *)
         ((neg_infinity,infinity):wartosc)
@@ -209,6 +215,8 @@ let podzielic (a:wartosc) (b:wartosc) =
     if snd b=0.0 then (* sprwadzenie czy w podstawie mamy (-inf,0) *)
         razy a (neg_infinity,(1.0/.fst a))
     else
-        razy a ((1.0/.snd b),(1.0/.fst a))
+    if 0.0<=snd b && 0.0>=fst b then
+        razy a ((1.0/.fst b),(1.0/.snd b))
+    else
+        razy a ((1.0/.snd b),(1.0/.fst b))
 ;;
-
