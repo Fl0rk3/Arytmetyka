@@ -1,3 +1,8 @@
+(*
+    Autor: Florian Ficek
+    Code Review: Konrad Obernikowicz
+*)
+
 (* 
     Wartości są przechowywane jako para (a , b) ,  w przypadku gdy mamy doczynienia
     ze zbiorem rozbieżnym wtedy zbiór jest zapisany jako (b , a) ,  gdzie b>a.
@@ -86,7 +91,10 @@ let suma_zb (a:wartosc) (b:wartosc) =
         ((neg_infinity , infinity):wartosc)
     else
     if (fst a > snd a) && (fst b > snd b) then (* dwa podzbiory *)
-        (((min (fst a) (fst b) ) , (min (snd a) (snd b) )):wartosc)
+        if (max (snd a) (snd b) ) > (min (fst a) (fst b) ) then
+            ((neg_infinity,infinity):wartosc)
+        else
+            (((min (fst a) (fst b) ) , (max (snd a) (snd b) )):wartosc)
     else
     if (fst a = neg_infinity && fst b = neg_infinity) then (* oba zbiory to (-inf , a) *)
         ((neg_infinity , (max (snd a) (snd b) )):wartosc)
@@ -120,6 +128,9 @@ let wartosc_dokladnosc (x:float) (p:float) =
 
 (*---------- SELEKTORY ----------*)
 let in_wartosc (x:wartosc) (y:float) = 
+    if is_nan (fst x) then
+        false
+    else
     if fst x=neg_infinity && snd x=infinity then
         true
     else
@@ -129,10 +140,10 @@ let in_wartosc (x:wartosc) (y:float) =
         else
             false
     else (* zbiór rozbieżny *)
-        if y <= snd x || y >= fst x then
-            true
-        else
+        if y > snd x && y < fst x then
             false
+        else
+            true
 ;;
 
 let min_wartosc (x:wartosc) = 
@@ -200,7 +211,8 @@ let minus (a:wartosc) (b:wartosc) =
             (((fst a -. snd b) , (snd a -. fst b)):wartosc)
 ;;
 
-let rec razy (a:wartosc) (b:wartosc) =
+let razy (a:wartosc) (b:wartosc) =
+    let rec helper (a:wartosc) (b:wartosc) =
     if nan_zb a b then (* gdy któryś to nan *)
         ((nan , nan):wartosc)
     else
@@ -216,17 +228,18 @@ let rec razy (a:wartosc) (b:wartosc) =
     else if is_rozbiezne a b then (* zbiór rozbieżny * zbiór rozbieżny *)
         (((suma_zb 
         (suma_zb 
-        (razy (neg_infinity , snd a) (neg_infinity , snd b) ) 
-        (razy (fst a ,  infinity) (neg_infinity , snd b) ) ) 
+        (helper (neg_infinity , snd a) (neg_infinity , snd b) ) 
+        (helper (fst a ,  infinity) (neg_infinity , snd b) ) ) 
         (suma_zb 
-        (razy (neg_infinity , snd a) (fst b ,  infinity) ) 
-        (razy (fst a ,  infinity) (fst b ,  infinity) ) ) )
+        (helper (neg_infinity , snd a) (fst b ,  infinity) ) 
+        (helper (fst a ,  infinity) (fst b ,  infinity) ) ) )
         :wartosc))
     else (* zbiór zbieżny * zbiór rozbieżny *)
         if(fst a>snd a) then (* a - rozbieżny *)
-            ((suma_zb (razy (neg_infinity , snd a) b) (razy (fst a , infinity) b)):wartosc)
+            ((suma_zb (helper (neg_infinity , snd a) b) (helper (fst a , infinity) b)):wartosc)
         else (* b - rozbieżny *) 
-            ((suma_zb (razy (neg_infinity , snd b) a) (razy (fst b , infinity) a)):wartosc)
+            ((suma_zb (helper (neg_infinity , snd b) a) (helper (fst b , infinity) a)):wartosc)
+    in helper a b
 ;;
 
 let podzielic (a:wartosc) (b:wartosc) =
